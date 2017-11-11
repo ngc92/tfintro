@@ -1,0 +1,157 @@
+%!TEX root = tfintro.tex
+
+\begin{frame}[fragile]
+    \frametitle{Some More Operations}
+    \framesubtitle{Constant tensors}
+    \operation{Operations} with constant \data{output}: 
+    \begin{lstlisting}  
+tf.zeros(|tshape|t, dtype=tf.float32, name=None)
+tf.ones(|tshape|t, dtype=tf.float32, name=None)
+tf.fill(|tdims|t, |tvalue|t, name=None)
+tf.constant(|vvalue|v, dtype=None, shape=None, name='Const', 
+            verify_shape=False)
+    \end{lstlisting}
+    \pause
+    And for your convenience
+    \begin{lstlisting}  
+tf.zeros_like(|ttensor|t, dtype=None, name=None, optimize=True)
+tf.ones_like(|ttensor|t, dtype=None, name=None, optimize=True)
+    \end{lstlisting}
+    \pause
+    Why not just \operation{tf.constant}?
+    \pause
+    Because then all those zeros/ones need to be saved inside an \pythonval{attribute} of the \operation{op},
+    whereas \operation{tf.zeros} can create them on the fly. Also readability.
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Some More Operations}
+    \framesubtitle{Reductions}
+    Performing operations over all elements of one or more dimensions. They all share the same function signature.
+    For numerical data
+    \begin{lstlisting}  
+tf.reduce_sum(|tinput_tensor|t, |vaxis=None|v, keep_dims=False, name=None)
+tf.reduce_prod, tf.reduce_max, tf.reduce_min, 
+tf.reduce_logsumexp
+    \end{lstlisting}
+    and for booleans / strings
+    \begin{lstlisting}  
+tf.reduce_any, tf.reduce_all
+tf.reduce_join
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Linear Model}
+    \framesubtitle{Forward pass}
+    We now have everything to build the forward pass of a simple linear model.
+    \begin{lstlisting}  
+W = tf.Variable(np.random((10, 784)))
+b = tf.Variable(np.random(10))
+x = tf.placeholder(tf.float32, (None, 784))
+l = tf.matmul(W, x) + b
+    \end{lstlisting}
+    \pause
+    Now we need to convert this into a probability distribution over classes, 
+    and a \emph{loss} function as optimization objective. Typical in classification tasks:
+    \emph{softmax} nonlinearity and \emph{cross-entropy} loss.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Linear Model}
+    \framesubtitle{Classification}
+    Classification task: Exactly one of $k$ classes is true.
+    \begin{block}{Softmax}
+        \[
+            \mathrm{softmax}(x)_i = \frac{\exp(x_i)}{\sum_{j=1}^k \exp(x_j)}.
+        \]
+    \end{block}
+    \begin{block}{Cross-Entropy}
+    Let $p(i)$ be the true probability of class $i$ and $q(i)$ be the predicted probability.
+    The cross-entropy between the two distributions is
+    \[
+        X(p, q) = \sum_{i=1}^{k} p(i) \log q(i).
+    \]
+    "How good can we compress data distributed $\sim p$ if we assume it is distributed $\sim q$"
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Linear Model}
+    \framesubtitle{Loss Function}
+    \begin{lstlisting}
+y = tf.placeholder(tf.float32, (None, 10))
+p = tf.nn.softmax(l)
+loss = tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=l)
+    \end{lstlisting}
+    \begin{block}{Some Notes}
+        \begin{itemize}
+            \item The function takes in logits instead of probabilities for numerical stability.
+            \item Labels need not be one-hot vectors, but can be arbitrary probablity distributions over classes.
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Stochastic Gradient Descent}
+    \framesubtitle{Optimizing Differentiable Functions}
+    \begin{block}{Gradient Descent}
+        Function $f$ of input dataset $X=(x_1, \ldots, x_n)$ and \emph{weights} $\theta$, loss $L$ and target values $Y=(y_1, \ldots, y_n)$, learning rate $\alpha$
+        \begin{align}
+            \theta \leftarrow \theta + \alpha \nabla_\theta L(f(X; \theta), Y)
+        \end{align}
+    \end{block}
+    \begin{block}{Estimating from Minibatches}
+        \begin{align*}
+            \nabla_\theta L(f(X; \theta), Y) = \sum_{i=1}^{n} \nabla_\theta L(f(x_i; \theta), y_i) = \frac{n}{k} \cdot \mathbb{E}\left[\sum_{i=1}^{k} \nabla_\theta L(f(x_{j_i}; \theta), y_{j_i})\right]
+        \end{align*}
+        For uniformly sampled $j_i$ we can use the rhs. as an unbiased estimator for the true gradient. 
+        $\Rightarrow$ \emph{Stochastic Gradient Descent}.
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Optimizers}
+    \framesubtitle{This Could be Your Slide about Backpropagation \ldots}
+    \begin{block}{Autodifferentiation is Your Friend}
+        As long as each \operation{operation} used in the mapping from \data{input} to \data{loss} tensor 
+        is \emph{differentiable} we need not worry about calculating the gradient of the chained \operation{operation}.
+    \end{block}
+
+    \begin{block}{Minimizing the Loss}
+        \begin{lstlisting}
+train_step = tf.train.GradientDescentOptimizer(0.1).minimize(loss)
+        \end{lstlisting}
+        The result is an \operation{operation} that performs a single gradient descent step when run. 
+        This means calculating the gradients and updating the trainable variables.
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{The Full Network}
+    \begin{block}{Network Code}
+        \begin{lstlisting}
+x = tf.placeholder(tf.float32, (None, 784))
+y = tf.placeholder(tf.float32, (None, 10))
+W = tf.Variable(np.random((10, 784)))
+b = tf.Variable(np.random(10))
+l = tf.matmul(W, x) + b
+p = tf.nn.softmax(l)
+loss = tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=l)
+train_step = tf.train.GradientDescentOptimizer(0.1).minimize(loss)
+        \end{lstlisting}        
+    \end{block}
+\begin{block}{Getting Data}
+        \begin{lstlisting}
+import tensorflow.contrib.learn as tflearn
+mnist = tflearn.datasets.load_dataset("mnist")
+images = mnist.train.images
+labels = mnist.train.labels
+        \end{lstlisting}        
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Basic Linear Model}
+    \centering Notebook (01 Linear Model.ipynb)
+\end{frame}

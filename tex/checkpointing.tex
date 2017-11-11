@@ -1,0 +1,74 @@
+%!TEX root = tfintro.tex
+
+\begin{frame}[fragile]
+    \frametitle{tf.train.Saver}
+    \framesubtitle{Writing Variables to Files}
+    The Saver class is responsible for building \operation{operations} that save and restore Variables to/from a checkpoint file.
+    \begin{lstlisting}
+tf.train.Saver(|mvar_list|m=None, reshape=False, max_to_keep=5, 
+keep_checkpoint_every_n_hours=10000.0, 
+name=None, restore_sequentially=False, saver_def=None, 
+builder=None, defer_build=False, allow_empty=False, 
+save_relative_paths=False, filename=None)
+    \end{lstlisting}
+    \begin{description}
+        \item[var\_list] List (or dictionary) of Variables to save. If \code{None} is submitted all \emph{global variables} are saved.
+        \item[max\_to\_keep] How many checkpoint files to keep before starting to delete older ones.
+    \end{description}
+    Creating a Saver does not yet save anything!
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{tf.train.Saver}
+    \framesubtitle{Writing Variables to Files}
+    \begin{block}{Saving to a Checkpoint}
+        Create a Saver object \textbf{after} the model has been build. Then
+        \begin{lstlisting}
+saver.save(session, |vsave_path|v, |tglobal_step|t=None, |vlatest_filename|v=None)
+        \end{lstlisting}
+        This saves the model to  \code{save\_path}, and if \code{global\_step} is supplied also
+        registers the new checkpoint in the \emph{latest checkpoints file} (named \code{"checkpoint"} or 
+        \code{latest\_filename}).
+    \end{block}
+
+    \begin{block}{Step Counting}
+        Save step count inside a tf.Variable to have consistent counts across checkpoints. Either manually or using 
+        \begin{lstlisting}
+global_step = tf.Variable(0, dtype=tf.int64, trainable=False)
+global_step = tf.train.create_global_step()
+        \end{lstlisting}
+        Automatically increment the global step for each optimization step.
+        \begin{lstlisting}
+train_step = optimizer.minimize(loss, global_step=global_step)
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{tf.train.Saver}
+    \framesubtitle{Restoring}
+    \begin{block}{Loading a Checkpoint}
+    To load the values into an \emph{already existing} model do
+\begin{lstlisting}
+saver.restore(session, |vsave_path|v)
+\end{lstlisting}
+To also restore the graph call create your saver as
+\begin{lstlisting}
+new_saver = tf.train.import_meta_graph(|vmeta_graph_file_name|v)
+\end{lstlisting}
+    \end{block}
+
+    \begin{block}{Finding the Correct Checkpoint File}
+        To restore you need the complete checkpoint file name, including the step suffix.
+        This can be found using the \code{latest\_checkpoint} function:
+    \begin{lstlisting}
+checkpoint = tf.train.latest_checkpoint(|vcheckpoint_dir|v ,|vlatest_filename|v=None)
+saver.restore(session, checkpoint)
+    \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Linear Model with Checkpoints}
+    \centering Notebook (03 Checkpoints.ipynb)
+\end{frame}

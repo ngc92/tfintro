@@ -1,0 +1,11 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+            "file_exclude_patterns": ["*.aux", "*.fls", "*.toc", "*.bbl", "*.log", "*.nav", "*.out", "*.fdb_latexmk", "*.gz",
+                "*.bcf", "*.blg", "*.xml", "*.snm", "*.vrb"],
+            "folder_exclude_patterns": [".*", "__pycache__", "MNIST-data", "checkpoints", "logs"]
+		}
+	]
+}

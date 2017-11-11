@@ -1,0 +1,89 @@
+%!TEX root = tfintro.tex
+
+\begin{frame}[fragile]
+    \frametitle{Placeholders}
+    \framesubtitle{Arguments for the Graph}
+    A placeholder is an \operation{operation} that cannot be evaluated. 
+    If its \data{value} is needed it has to be fed.
+     \begin{lstlisting}
+>>> p = tf.placeholder(tf.float32)
+>>> a = tf.add(p, 1.0)
+>>> a.eval()
+Error
+>>> a.eval(feed_dict={p: 2.0})
+3.0
+     \end{lstlisting}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Shapes}
+    \framesubtitle{\code{tf.TensorShape}}
+    \begin{block}{Partial Shapes}
+        The most unspecific shape possible is \pythonval{tf.TensorShape(None)} which can be any arbitrary shape.
+        We can also just specify the rank \pythonval{tf.TensorShape([None, None])} or single dimensions
+        \pythonval{tf.TensorShape([None, 10])}.
+    \end{block}
+    \begin{block}{Guarantees on Dynamic Shapes}
+        A static shape is just a guarantee we specify for the dynamical shape. Example: If \data{y} is a tensor 
+        of static shape \pythonval{[None, 10]} and gets assigned data of shape \data{[5, 10]} everything is fine, but if we try to assign \data{[5, 15]} an error is raised.
+    \end{block}
+    \begin{block}{Automatic Shape Inference}
+        Most python functions that create \operation{operations} also perform automatic shape inference.
+        (\operation{add}(a.shape=\pythonval{[None, 10]}, b.shape=\pythonval{[5, None]})).shape == [5, 10]).
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Shapes}
+    \framesubtitle{Broadcasting}
+    \begin{block}{Rules as in numpy}  % TODO I think so, look that up 
+        Broadcasting works similarly to numpy and usually "does the right thing". 
+        Singleton dimensions (dimensions with size 1) will be expaned to match the dimension of the other \data{tensor} and missing dimensions are of size 1. 
+    \end{block}
+    \pause
+    \begin{block}{Examples}
+    \begin{lstlisting}
+>>> a = tf.constant(1.0)
+>>> b = tf.constant([1.0, 2.0, 3.0])
+>>> (a+b).eval()
+[2.0, 3.0, 4.0]
+    \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Variables}
+    \framesubtitle{Storing values across run calls.}
+    \begin{block}{Not a single graph object.}
+        A \emph{Variable} is modeled by the \code{tf.Variable} class and not a single \operation{operation} or \data{tensor}, 
+        but an interface for interaction with a region of memory. It can construct \operation{operations} for
+        reading and writing data and an for assigning the \data{initial value}.
+    \end{block}
+    \begin{block}{Creating a Variable}
+        A variable can be created using \code{tf.Variable} which needs at least an \data{initial value}.
+        It can also be named and get its \pythonval{data type} specified. 
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Variables}
+    \framesubtitle{Storing values across run calls.}
+    \begin{block}{Assignments}
+        To assign a a new value the \operation{assign} operation can be used. 
+        \begin{lstlisting}
+tf.assign(|tref|t, |tvalue|t, |vvalidate_shape|v=None, |vuse_locking|v=None, |vname|v=None)
+        \end{lstlisting}
+        To change the shape of the variable, set \code{validate\_shape} to \code{False}. Assign is also available as a method of the 
+        \code{Variable} class.
+    \end{block}
+    \begin{block}{Initialization}
+        A variable cannot be read from until it has been assigned a value. For the first time, this is done 
+        by its \operation{initialization op}. Alternatively, the initial value can be read from a save file and
+        be assigned to the Variable. To initialize all variables at once, run the \operation{operation} created 
+        by \code{tf.global\_variables\_initializer()}.
+    \end{block}
+\end{frame}
+
+% Variable initialization, initialized_value
+% assign, assign_add, etc
+% full example

@@ -1,0 +1,132 @@
+%!TEX root = tfintro.tex
+
+\begin{frame}
+	\frametitle{Summaries}
+	\framesubtitle{Gather Monitoring Data inside the Graph}
+	Add graph \operation{operations} responsible for logging (\emph{summaries}).
+	\begin{block}{Motivation}
+		\begin{itemize}
+			\item On-line monitoring of progress (e.g. loss, accuracy) and network internals (e.g. weight norms, regularization losses)
+			\item Feed-dict does not scale well to many summaries.
+			\item High level debugging. See that input images are correctly preprocessed, gradient norms remain reasonable etc. 
+		\end{itemize}
+	\end{block}
+	\begin{block}{Summary Operations}
+		Take in a \data{Tensor} and produce a string \data{summary} (which is a serialized protobuf object). These can be collected and written to a summary file. 
+	\end{block}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Summaries}
+	\framesubtitle{Gather Monitoring Data inside the Graph}
+	\begin{block}{Summary Types}
+	The following summaries are available in the \code{tf.summary} module.
+	\begin{description}
+		\item[scalar] A single real value, e.g. the loss.
+		\item[histogram] Histogram of the values of a \data{Tensor}, e.g. to visualize distributions of activations.
+		\item[image] An image [$\mathrm{Batch}\times\mathrm{Height}\times\mathrm{Width}\times\mathrm{Channels}$] tensor. 
+		\item[audio] Audio data in format [$\mathrm{Batch}\times\mathrm{Frames}\times\mathrm{Channels}$] or [$\mathrm{Batch}\times\mathrm{Frames}$] in range $[-1.0, 1.0]$.
+		\item[text] A string tensor representing textual data.
+	\end{description}
+	Each \operation{summary} takes at least two arguments: A \pythonval{name} (or tag) for the operation, and
+	the \data{tensor} to summarize.  
+	\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Summaries}
+	\framesubtitle{Gather Monitoring Data inside the Graph}
+	\begin{block}{Merging Summaries}
+		Since summaries are \operation{operations}, we need to explictly pass them as fetches to generate summary values.
+		To make this more usable, multiple \data{summaries} can be \operation{merged} into a single \data{summary}. 
+		This can be done for an explicit list of summaries (\code{tf.summary.merge}) or for all summaries in the graph
+		(\code{tf.summary.merge\_all}).
+	\end{block}
+	\begin{block}{Example}
+		\begin{lstlisting}
+a = tf.summary.scalar("loss", loss)
+b = tf.summary.scalar("accuracy", accuracy)
+s = tf.summary.merge_all()   # = tf.summary.merge([a, b])
+		\end{lstlisting}
+		To generate the summaries during training:
+		\begin{lstlisting}
+_, summary = session.run([train_step, s], feed_dict=feed_dict)
+		\end{lstlisting}
+		Gets both "loss" and "accuracy" summaries.
+	\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Summary Writer}
+	\framesubtitle{Saving Summaries}
+	\begin{block}{FileWriter}
+		A \code{tf.summary.FileWriter} is responsible for writing log \emph{events} to a file. 
+		Events can be summaries, graphs, session logs, run metadata etc. 
+		\begin{lstlisting}
+tf.summary.FileWriter(logdir, graph, max_queue, flush_secs, filename_suffix)
+		\end{lstlisting}
+		Creates a new summary file with a unique name inside \texttt{logdir} and
+		writes a graph event to it if \code{graph} is supplied.
+	\end{block}
+	\begin{block}{Directories Group Runs}
+	By convention \textbf{all} event files within a single directory are assumed to be from the same 
+	\emph{run}. These containing events will be grouped together.
+	% Correct and wrong example images here.
+	\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Summary Writer}
+	\framesubtitle{Saving Summaries}
+	\begin{block}{Adding Events to Summary Files}
+	To add a summary one needs the (serialized) Protocol Buffer and an associated \emph{global step}. 
+	\begin{lstlisting}
+summary = session.run(|tsummaries|t)
+writer.add_summary(|vsummary|v, |vglobal_step|v)
+	\end{lstlisting}
+	While the step is typically gathered from a \data{global\_step} variable, the summary writer accepts 
+	any \pythonval{python integer}. The step is used to form a time axis for your log data.
+	\end{block}
+	\begin{block}{Writes Are Asynchronous}
+	To prevent training slowdowns by summary writes, the \code{FileWriter} writes only asynchronously to 
+	the summary file. This can be controlled with the \code{max\_queue} and \code{flush\_secs} parameters.
+	\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Some More Operations}
+    \framesubtitle{Comparisons}
+    \begin{block}{Comparison Operations}
+    Compare tensors element-wise
+    \begin{lstlisting}  
+tf.equal(|tx|t, |ty|t, |vname|v=None)
+    \end{lstlisting}
+    and analogly
+    \begin{lstlisting}  
+tf.less, tf.less_equal, tf.greater, tf.greater_equal
+    \end{lstlisting}
+    \pause
+    Booleans to numbers
+    \begin{lstlisting}
+tf.cast(|tbool_tensor|t, |vdata_type|v)
+    \end{lstlisting}
+    converts every \code{True} to $1.0$ and every \code{False} to $0.0$.    	
+    \end{block}
+	\begin{block}{Calculating Accuracy}
+	\begin{lstlisting}
+is_correct = tf.equal(tf.argmax(|tlogits|t, axis=1), |ty|t)
+accuracy = tf.reduce_mean(tf.cast(is_correct, |vtf.float64|v))
+    \end{lstlisting}
+	\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Linear Model with Summaries}
+	\centering Notebook (02 Summaries.ipynb)
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Tensorboard}
+	\centering
+	Tensorboard Demo
+\end{frame}

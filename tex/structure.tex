@@ -1,0 +1,351 @@
+%!TEX root = tfintro.tex
+
+\begin{frame}[fragile]
+    \frametitle{Useful Python Features}
+    \begin{block}{Context Managers}
+        Allows do some code in a certain context by executing an \code{\_\_enter\_\_} function when the context starts
+        and an \code{\_\_exit\_\_} function when the context ends. For example:
+\begin{lstlisting}
+with open("filename") as file:
+    # do sth with the file
+# here, the file will be close again
+\end{lstlisting}
+    This is used extensively by tensorflow for default sessions, default graphs, devices, scoping etc.
+    \end{block}
+    \begin{block}{Named Tuples}
+        Makes a helper type that behaves like a tuple, but can be indexed with named keys.
+\begin{lstlisting}
+NamedTuple = namedtuple("NamedTuple", ("a", "b"))
+data = NamedTuple(a=5, b="test")
+\end{lstlisting}        
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Default Session and Default Graph}
+    \framesubtitle{}
+    \begin{columns}
+        \begin{column}{0.4\linewidth}
+        Instead of 
+        \begin{lstlisting}
+# build your model here
+session = tf.Session()
+# your main loop here
+session.close()
+    \end{lstlisting}
+    \begin{block}{Problems}
+    \begin{itemize}
+        \item Risks forgetting to close session. 
+                Leaks in case of exception.
+        \item Pollutes global default graph. 
+    \end{itemize}
+    \end{block}
+        \end{column}
+        \begin{column}{0.5\linewidth}
+        Do
+    \begin{lstlisting}
+graph = tf.Graph()
+with graph.as_default():
+    # build your model here
+with tf.Session(graph=graph) as session:
+    # Your main loop here
+    \end{lstlisting}
+        \begin{block}{Advantages}
+    \begin{itemize}
+        \item Guaranteed cleanup.
+        \item Can easily create multiple graphs and runs in a single program without interference.
+    \end{itemize}
+    \end{block}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Model Function}
+    \framesubtitle{Separating Model Definition and Training Routine}
+        Instead of building the model inside the default graph, put the model into its own function.
+        Keep the model inputs as arguments.
+    \begin{lstlisting}
+Model = namedtuple("Model", ("loss", "train_step"))
+
+def model_fn(x, y):
+    W = tf.Variable(np.random((10, 784)))
+    b = tf.Variable(np.random(10))
+    l = tf.matmul(W, x) + b
+    labels = tf.one_hot(y, depth=10)
+    loss = tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=l)
+    loss = tf.reduce_mean(loss)
+    train_step = tf.train.GradientDescentOptimizer(0.1).minimize(loss)
+    return Model(loss=loss, train_step=train_step)
+    \end{lstlisting}
+\end{frame}
+
+
+\begin{frame}[fragile]
+    \frametitle{Model Function}
+    \framesubtitle{Separating Model Definition and Training Routine}
+    Use as follows:
+    \begin{lstlisting}
+graph = tf.Graph()
+with graph.as_default():
+    x = tf.placeholder(tf.float32, (None, 784), name="x")
+    y = tf.placeholder(tf.int64, (None), name="y")  
+    loss, train_step = model_fn(x, y)
+    init_op = tf.global_variables_initializer()
+
+with tf.Session(graph=graph) as session:
+    init_op.run()
+    # Your main loop here
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Scoping}
+    \framesubtitle{Structure in Operation Names}
+    \begin{block}{Name Scopes}
+        Every operation created within a name scope will have its name 
+        prefixed by that scope name.
+            \begin{lstlisting}
+with tf.name_scope("prefix"):
+    a = tf.add(5, 4)
+print(a.name)  #  "prefix/Add:0"
+    \end{lstlisting}
+    \end{block}
+
+    \begin{block}{Nesting}
+        Name scopes stack.
+    \begin{lstlisting}
+with tf.name_scope("prefix"):
+    with tf.name_scope("inner"):
+        a = tf.add(5, 4)
+print(a.name)  #  "prefix/inner/Add:0"
+    \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Scoping}
+    \framesubtitle{Structure in Operation Names}
+    \begin{block}{Re-Opening Name Scopes}
+        Using the same name scope again will create a new, unique prefix 
+        \begin{lstlisting}
+with tf.name_scope("prefix"):
+    a = tf.add(5, 4)
+with tf.name_scope("prefix"):
+    a = tf.add(5, 4)
+print(a.name)  #  "prefix_1/Add:0"
+        \end{lstlisting}
+        But you can remember a scope and reuse it as an absolute scope.
+        \begin{lstlisting}
+with tf.name_scope("prefix") as prefix_scope:
+    pass
+with tf.name_scope("other"):
+    with tf.name_scope(prefix_scope):
+        a = tf.add(5, 4)
+print(a.name)  #  "prefix/Add:0"
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Scoping}
+    \framesubtitle{Variable Reuse}
+    \begin{block}{Weight Sharing}
+        In some models we want to use the same weights in different parts of the computation (e.g. in a GAN).
+        This can be achieved using \emph{variable scopes}.
+    \end{block}
+    \begin{block}{Variable Scope}
+        A variable scope sets the name scope in which variables are created or looked up. Use in conjunction with
+        \code{tf.get\_variable} which either gets an existing variable or creates a new variable. Opening a variable 
+        scope of the same name again will open the \emph{exact same scope}
+\begin{lstlisting}
+with tf.variable_scope("S"):
+    tf.get_variable("a", shape=()).name  # S/a:0
+with tf.variable_scope("S"):
+    tf.get_variable("b", shape=()).name  # S/b:0
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Scoping}
+    \framesubtitle{Variable Reuse}
+    \begin{block}{Reusing a Scope}
+        Inside a variable scope you can either create new variables \textbf{or} reuse existing ones, never both:
+\begin{lstlisting}
+with tf.variable_scope("S"):
+    tf.get_variable("a", shape=()).name  # S/a:0
+with tf.variable_scope("S"):
+    tf.get_variable("a", shape=()).name  # ERROR
+with tf.variable_scope("S", reuse=True):
+    tf.get_variable("a").name  # S/a:0
+\end{lstlisting}
+Entering a non-reusing scope as subscope inside a reusing one is not possible, and neither is the reverse:
+    \begin{lstlisting}
+with tf.variable_scope("S", reuse=True):
+    with tf.variable_scope("T", reuse=False)
+        pass  # ERROR
+\end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Scoping}
+    \framesubtitle{Variable Reuse}
+    \begin{block}{Variable Scopes and Name Scopes}
+        Entering a Variable Scope automatically enters a name scope of the same name.
+\begin{lstlisting}
+with tf.name_scope("other") as other_scope:
+    pass
+with tf.variable_scope("S"):
+    tf.get_variable("a", shape=())
+with tf.variable_scope("S", reuse=True):
+    tf.add(5, 4)  # S_1/Add:0
+    with tf.name_scope(other_scope):
+        a = tf.get_variable("a", shape=())  # S/a:0
+        tf.add(a, 4)  # other/Add:0
+\end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{get\_variable}
+    \framesubtitle{A Imporved Interface to Variables}
+    \code{get\_variable} acts as a Variable constructor that respects the current variable scope.
+\begin{lstlisting}
+tf.get_variable(name, shape=None, dtype=None, initializer=None, 
+                regularizer=None, trainable=True, |gcollections=None, 
+                caching_device=None, partitioner=None|g, 
+                validate_shape=True, |guse_resource=None, 
+                custom_getter=None|g, constraint=None)
+\end{lstlisting}
+    Instead of an initial value, an \code{initializer} has to be passed. 
+    This is a \buildfun{function} that takes in the desired shape and data type
+    and \operation{produces} the \data{initial value}. The \buildfun{regularizer}
+    is a function that takes the variables \data{value} and outputs a 
+    \emph{regularization} \data{loss}, and \buildfun{constraint} maps the 
+    variables \data{value} to a constrained \data{value}.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Graph Building Functions}
+    \framesubtitle{Passing Around Recipies for Subgraphs}
+    \begin{block}{Building Functions}
+    Passing around \buildfun{building functions} instead of pre-built \data{tensors}
+    allows to build computations in the correct context.
+    \begin{description}
+        \item[initializer] The initial value is calculated in the Variable's name scope.
+        \item[constraint] The constraint should be applied after an update to the variable, but 
+        this has not happened yet at construction time.
+    \end{description}        
+    \end{block}
+
+    \begin{block}{Another Level of Indirection}
+        \[\mathrm{building ~ function} \stackrel{\mathrm{build}}{\longrightarrow} \mathrm{computation ~ graph} \stackrel{\mathrm{run}}{\longrightarrow} \mathrm{values}
+     \]
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Initializer}
+    \framesubtitle{Building Functions for Initial Values}
+    The following initializers are available in tensorflow:
+\begin{lstlisting}
+zeros(dtype=tf.float32)
+ones(dtype=tf.float32)
+constant(value=0, dtype=tf.float32, verify_shape=False, dtype=tf.float32)
+random_uniform(minval=0, maxval=None, seed=None, dtype=tf.float32)
+random_normal(mean=0.0, stddev=1.0, seed=None, dtype=tf.float32)
+truncated_normal(mean=0.0, stddev=1.0, seed=None, dtype=tf.float32)
+variance_scaling(scale=1.0, mode="fan_in", distribution="normal", 
+                 seed=None, dtype=tf.float32)
+orthogonal(gain=1.0, seed=None, dtype=tf.float32)
+identity(gain=1.0, dtype=tf.float32)
+\end{lstlisting}
+The functions are available as \code{tf.*\_initializer} or \code{tf.initializers.*}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Random Operations}
+    \framesubtitle{Deterministic Pseudo-Random Numbers}
+    To get deterministic pseudo-random numbers, a (graph level) random seed has to be set by
+    \code{tf.set\_random\_seed}. In addition, each random operation has its own seed. The randomization
+    is then as follows
+    \begin{description}
+        \item[both not set] A random seed is generated for each run and operation.
+        \item[graph seed is set] Operation seeds are picked deterministically from the graph seed.
+        \item[operation seed set] Use a default graph seed together with the operation seed.
+        \item[both set] Combine graph and operation seed. 
+    \end{description}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Random Operations}
+    \framesubtitle{List of Ops}
+    \begin{block}{Drawing from a Distribution}
+    All operations below also do have a \code{seed} and a \code{name} argument.
+    \begin{lstlisting}
+tf.random_normal(shape, mean=0.0, stddev=1.0, dtype=tf.float32)
+tf.truncated_normal(shape, mean=0.0, stddev=1.0, dtype=tf.float32)
+tf.random_uniform(shape, minval=0, maxval=None, dtype=tf.float32)
+tf.random_gamma(shape, alpha, beta=None, dtype=tf.float32)
+tf.multinomial(logits, num_samples)
+\end{lstlisting}       
+    \end{block}
+
+    \begin{block}{Modify Existing Values}
+        \begin{lstlisting}
+tf.random_shuffle(value, seed=None, name=None)
+tf.random_crop(value, size, seed=None, name=None)
+\end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Graph Collections}
+    \framesubtitle{Categorizing Ops and Tensors}
+    \begin{block}{}
+    Functions like \code{merge\_all\_summaries}, \code{global\_variables\_initializer}, etc need to find the graph elements that they should operate on.
+    This is facilitated by graph collections.
+    \end{block}
+    \begin{block}{Graph Collection}
+        A graph collection is a list of graph elements that is registered under a certain name in the graph.
+        \begin{lstlisting}
+tf.get_collection(key, scope=None)
+tf.add_to_collection(name, value)
+        \end{lstlisting}
+        These collections then allow to categorize tensors according to their purpose.
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Graph Collections}
+    \framesubtitle{Standard Collections}
+    By default tensorflow uses the among others following collection keys (all defined in \code{tf.GraphKeys})
+    \begin{description}
+        \item[GLOBAL\_VARIABLES] All model weights, global step etc.
+        \item[TRAINABLE\_VARIABLES] Variables that will be updated by the optimizer.
+        \item[SUMMARIES] All summaries.
+        \item[REGULARIZATION\_LOSSES] All regularization losses.
+    \end{description}
+    \vspace{2em}
+    More keys are only used by subsystems
+    \begin{description}
+        \item[GLOBAL\_STEP] The global step variable when used with \code{tf.train}.
+        \item[LOSSES] Losses built with \code{tf.losses}
+        \item[WEIGHTS, BIASES] Kernels and biases of \code{tf.layers}
+    \end{description}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Linear Model}
+    \centering Notebook (04 Structure.ipynb)
+\end{frame}
+
+\begin{frame}
+    \centering
+    Notebook (05 Higher Level.ipynb)
+\end{frame}
+
+% images of the graphs?
+% putting things together

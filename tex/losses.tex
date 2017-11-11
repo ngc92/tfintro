@@ -1,0 +1,65 @@
+%!TEX root = tfintro.tex
+
+\begin{frame}
+    \frametitle{Losses}
+    \framesubtitle{Utilities for Defining Loss Functions}
+    A higher level interface to typical losses is given in \code{tf.losses}. 
+    These add (optional) name scoping and a unified interface for weighted losses.
+    The following losses are available:
+    \begin{itemize}
+        \item Absolute Difference
+        \item Cosine Distance
+        \item Hinge Loss
+        \item Huber Loss
+        \item Log Loss
+        \item (sigmoid/Softmax) Cross Entropy
+        \item Mean Squared Error
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Mean Squared Error}
+    \begin{block}{Interface}
+        \begin{lstlisting}
+tf.losses.mean_squared_error(|tlabels|t, |tpredictions|t, |tweights|t=1.0,
+                             |vscope|v=None, 
+                             |vloss_collection|v=tf.GraphKeys.LOSSES,
+                             |vreduction|v=Reduction.SUM_BY_NONZERO_WEIGHTS)
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{Arguments}
+        \begin{description}
+            \item[weights] Weights for the losses. Either a single scalar, of of the same shape as \code{labels}.
+            \item[scope] Name scope in which all computations will be put. If \code{None} use current scope.
+            \item[loss\_collection] GraphCollection where the loss is registered.
+            \item[reduction] How the loss is reduced to a single scalar. Can be \code{NONE}, \code{MEAN}, \code{SUM} 
+            or \code{SUM\_BY\_NONZERO\_WEIGHTS}.
+        \end{description}
+    \end{block}
+
+    The other losses work analogly.
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Regularization Losses}
+    \framesubtitle{Gathering Additional Loss Functions}
+    \begin{block}{Getting Regularization Losses}
+        Each Variable with a \emph{regularizer} registers the resulting loss. These losses can be retrieved either 
+    individually 
+    \begin{lstlisting}
+tf.losses.get_regularization_losses(scope=None)
+    \end{lstlisting}
+    or as a total
+    \begin{lstlisting}
+tf.losses.get_regularization_loss(scope=None)
+    \end{lstlisting}
+    \end{block}
+     
+    \begin{block}{Regularizers}
+        Typical regularization functions are e.g.
+    \begin{lstlisting}
+tf.contrib.layers.l1_regularizer(scale, scope=None)
+tf.contrib.layers.l2_regularizer(scale, scope=None)
+    \end{lstlisting}  
+    \end{block}
+\end{frame}

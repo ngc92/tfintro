@@ -1,0 +1,169 @@
+%!TEX root = tfintro.tex
+
+\begin{frame}
+    \frametitle{Layers Interface}
+    \framesubtitle{Quickly Building Sequential Models}
+    The functions in \code{tf.layers} take an input value and build a complete neural network \emph{layer} that transforms the value.
+    This includes inferring the shapes of the invoved tensors and creating or reusing variables. 
+    There are layers for
+    \begin{itemize}
+        \item Flattening
+        \item Dense (fully connected) multiplication
+        \item Convolution
+        \item Max Pooling
+        \item Dropout
+        \item Batch Normalization 
+    \end{itemize}
+    \pause
+    If your favourite layer is not listed here, the necessary primitives might still be in \code{tf.nn}, or it might be in \code{tf.contrib}.
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Dense Layer}
+    \framesubtitle{Argument Overview}
+    Most layer functions take a vast amount of arguments. There are three per variable for \emph{initializer}, \emph{regularizer} and \emph{constraint}.
+    \begin{onlyenv}<1>
+    \begin{lstlisting}
+tf.layers.dense(
+    |tinputs|t,
+    |vunits|v,
+    |factivation|f=None,
+    |vuse_bias|v=True,
+    |fkernel_initializer|f=None,
+    |fbias_initializer|f=tf.zeros_initializer(),
+    |fkernel_regularizer|f=None,
+    |fbias_regularizer|f=None,
+    |factivity_regularizer|f=None,
+    |fkernel_constraint|f=None,
+    |fbias_constraint|f=None,
+    |vtrainable|v=True,
+    |vname|v=None,
+    |vreuse|v=None
+)
+    \end{lstlisting}
+    \end{onlyenv}
+    \begin{onlyenv}<2>
+    \begin{lstlisting}
+tf.layers.dense(
+    |tinputs|t,
+    |vunits|v,
+    |factivation|f=None,
+    |vuse_bias|v=True,
+    |factivity_regularizer|f=None,
+    |vtrainable|v=True,
+    |vname|v=None,
+    |vreuse|v=None
+)
+    \end{lstlisting}
+    \code{name}, \code{reuse} and \code{trainable} are also passed for the variables and determine variable scope, reuse and trainability. \code{activity\_regularizer} adds 
+    a regularization loss depending on the layers output. 
+    \end{onlyenv}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Dense Layer}
+    The main interface of the layer is
+    \begin{lstlisting}
+tf.layers.dense(|tinputs|t, |vunits|v, |factivation|f=None, |vuse_bias|v=True)
+    \end{lstlisting}
+    \begin{block}{Arguments}
+        \begin{description}
+        \item[inputs] Input tensor $x$ of shape \code{[Batch Size, Input Size]} 
+        \item[units] Number of output elements.
+        \item[activation] An activation function $\sigma$ that is applied to the outputs. \code{None} means linear activation.
+        \item[use\_bias] whether to add a bias $b$ to the result. 
+        \end{description}
+    \end{block}
+    \begin{block}{Calculation}
+    \vspace{-4ex}
+    \begin{align}
+        o = \sigma(Wx+b)
+    \end{align}
+    \end{block}
+    \begin{block}{Activation Functions}
+    \begin{lstlisting}
+tf.nn.relu, tf.nn.sigmoid, tf.nn.tanh, tf.nn.softmax, ...
+    \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Multilayer Perceptron}
+    The model function of a multilayer perceptron network is now
+    \begin{lstlisting}
+def mlp_fn(x, hidden_units=(50, 30, 10)):
+    hidden = x
+    for units in hidden_units:
+        hidden = tf.layers.dense(hidden, units, tf.nn.sigmoid)
+    return hidden
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Convolution}
+    The main interface of the 2d convolution is
+    \begin{lstlisting}
+tf.layers.conv2d(|tinputs|t, |vfilters|v, |vkernel_size|v, |vstrides|v=(1, 1), 
+                 |vpadding|v='valid', |vdata_format|v='channels_last',
+                 |vdilation_rate|v=(1, 1), |factivation|f=None, |vuse_bias|v=True)
+    \end{lstlisting}
+    \begin{block}{Arguments}
+        \begin{description}
+        \item[filters] Number of output channels
+        \item[kernel\_size] Size of the receptive field.
+        \item[strides] Step size for striding.
+        \item[padding] Either \code{"valid"} (no padding) or \code{"same"}
+        \item[data\_format] Either \code{"channels\_first"} or \code{"channels\_last"}
+        \item[dilation\_rate] For dilated convolutions.
+        \end{description}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Convolutional Classifier}
+    The model has a few convolutional layers followed by a fully connected classifier.
+    \begin{lstlisting}
+def cnn_fn(x, channels=(32, 64), outputs=10):
+    hidden = x
+    for c in channels:
+        hidden = tf.layers.conv2d(hidden, c, kernel_size=3, strides=2,
+                                    activation=tf.nn.relu)
+    hidden = tf.layers.flatten(hidden)
+    return tf.layers.dense(hidden, outputs)
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Dropout}
+    The \emph{dropout} layer behaves differently in training mode compared to evaluation/prediction mode.
+    \begin{lstlisting}
+tf.layers.dropout(|tinputs|t, |trate|t=0.5, |tnoise_shape|t=None, |vseed|v=None, 
+                  |ttraining|t=False, |vname|v=None)
+
+    \end{lstlisting}
+    \begin{block}{Arguments}
+        \begin{description}
+        \item[rate] Fraction of values to drop.
+        \item[noise\_shape] Shape of the dropout mask.
+        \item[training] If \code{True}, drops out \code{rate} values and rescales by \code{rate}$^{-1}$, 
+                        otherwise does nothing.
+        \end{description}
+    \end{block}
+    Instead of a dynamic \data{training} value, we can use an additional parameter to our \buildfun{model\_fn} 
+    to build the graph either in training or in inference mode. 
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Convolutional Classifier with Dropout}
+    The model has a few convolutional layers, followed by a fully connected classifier. Performs dropout in training mode.
+    \begin{lstlisting}
+def cnn_fn(x, channels=(32, 64), outputs=10, is_training=True):
+    hidden = x
+    for c in channels:
+        hidden = tf.layers.conv2d(hidden, c, kernel_size=3, strides=2,
+                                    activation=tf.nn.relu)
+    hidden = tf.layers.flatten(hidden)
+    hidden = tf.layers.dropout(hidden, 0.5, training=is_training)
+    return tf.layers.dense(hidden, outputs)
+    \end{lstlisting}
+\end{frame}

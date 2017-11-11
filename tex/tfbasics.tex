@@ -1,0 +1,406 @@
+%!TEX root = tfintro.tex
+
+\begin{frame}
+    \frametitle{Basic Data Structures}
+    \framesubtitle{Overview}
+    \begin{block}{Graph}
+        The \code{tf.Graph} class manages a computation graph.
+    \end{block}
+    \begin{block}{Operation}
+        The \code{tf.Operation} class represents an \operation{operation}.
+    \end{block}
+    \begin{block}{Data}
+        The \code{tf.Tensor} class represents blobs of \data{data} that are inputs and outputs
+        of \operation{operations}.
+    \end{block}
+    \begin{block}{Executation}
+        The \code{tf.Session} class manages the execution of computations and external resources
+        that \operation{operations} can interact with.
+    \end{block}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Graphs}
+    \framesubtitle{\code{tf.Graph}}
+    \begin{block}{Graph objects}
+    \code{tf.Graph} objects manage the computational graph. 
+    \data{Tensors} and \operation{operations} are identified by a unique name. 
+    It also provides \emph{context managers} and some metadata; we'll look at that later.
+    \end{block}
+    \pause
+    \begin{block}{The Default Graph}
+        TensorFlow always has a graph as the \emph{default graph} (even if you don't create any graph).
+        New \operation{operations} are added to the current default graph.  
+    \end{block}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Operations and Tensors}
+    \framesubtitle{\code{tf.Operation}}
+    \begin{block}{Operations}
+        An \operation{operation} maps \data{inputs} to (possibly multiple) \data{outputs}. 
+        It can also have side effects (eg. reading from memory, file system). An operation
+        can have \pythonval{attributes} (i.e. parameters that cannot be dynamically set) and be associated
+        to a device (e.g. a specific CPU or GPU).
+    \end{block}
+    \pause
+    \begin{block}{Order of Execution}
+        An \operation{operation} can be executed once its \data{inputs} (including \data{control dependencies})
+        are available. Apart from that \operation{operations} are not further synchronized. An operation is run 
+        only once, we assume that the \data{outputs} are fixed once the \data{inputs} are ready. For different 
+        executions of the computation, the \operation{operation} may produce different \data{outputs} for
+        the same \data{inputs} (e.g. random \operation{ops}).
+    \end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+    \frametitle{Operations and Tensors}
+    \framesubtitle{\code{tf.Operation}}
+    \begin{block}{Creating Operations}
+        \operation{Operations} are usually added to the graph using constructor functions. 
+        These functions convert the inputs to \data{tensors} and validate 
+        them as far as possible. They do not return the \operation{operation}, but its \data{output},
+        which is usually what you need.
+        Some examples are
+        \begin{lstlisting}
+tf.add
+tf.multiply
+tf.subtract
+tf.divide
+tf.matmul
+tf.constant
+        \end{lstlisting}
+        Also, the usual math functions like trigonometrics, sqrt, exp etc.
+    \end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+    \frametitle{Operations and Tensors}
+    \framesubtitle{Example: \code{tf.constant}}
+    \begin{block}{\code{tf.constant}}
+        The \code{tf.constant} function does not return an \operation{operation} but a \data{tensor}. 
+        Explicitly access its \operation{operation} by the \code{op} attribute. 
+        This operation has zero \data{inputs} and one \data{output}. The \pythonval{value} of the constant is fixed at 
+        creation time and part of the op definition.
+        \begin{lstlisting}
+>>> |ta|t = tf.|oconstant|o(|v5|v)
+>>> print(|ta|t)
+Tensor("Const:0", shape=(), dtype=int32)
+>>> print(|oa.op|o)
+>>> a.op.graph == tf.get_default_graph()
+True
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Operations and Tensors}
+    \framesubtitle{Example: \code{tf.constant}}
+    \begin{block}{The op definition}
+        \begin{lstlisting}[morekeywords={name, op, attr, key, value, tensor, dtype, tensor_shape, int_val}]
+name: "Const"
+op: "Const"
+attr {
+  key: "dtype"
+  value { type: DT_INT32 } 
+}
+attr {
+  key: "value"
+  value {
+    tensor {
+      dtype: DT_INT32
+      tensor_shape {}
+      int_val: 5
+    } 
+  }
+}
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+
+
+
+\begin{frame}
+    \frametitle{Operations and Tensors}
+    \framesubtitle{\code{tf.Tensor}}
+    \begin{block}{Typed Multidimensional Array}
+        A \data{\code{tf.Tensor}} \code{T} is a multidimensional array with a \pythonval{fixed data type}. They are the outputs
+    of \operation{operations} and their \pythonval{name} contains a number to mark the output index. A \data{tensor} has no 
+    \pythonval{value} until the graph is executed!
+    \end{block}
+
+    \begin{block}{TensorShape}
+        A \data{tensor} has an associated \pythonval{(static) shape} (\code{tf.TensorShape}). 
+        It can be partially defined and is available as \pythonval{T.shape}.
+        Upon execution, each tensor has a second \data{(dynamic) shape} which always is completely specified.
+    \end{block}
+
+    \begin{block}{Overloaded Operators}
+        For most python operators (e.g. +, -, *, /, **) the special methods of \code{tf.Tensor} are overloaded.
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Operations and Tensors}
+    \framesubtitle{Example: Arithmetic}
+    \begin{block}{\code{tf.add}}
+        \data{Inputs} to \operation{operations} have to be \data{tensors}, so any python \pythonval{value} you supply
+        to \operation{tf.add} is transformed into a \data{tensor} (\operation{tf.constant}). 
+        \begin{lstlisting}
+>>> |ta|t = tf.|oadd|o(|v3|v, |v5|v)
+<tf.Tensor 'Add:0' shape=() dtype=int32>
+        \end{lstlisting}
+        \pause
+        \vspace{2em}
+        \centering
+        \large
+        The result is the \data{tensor}, not the \pythonval{value}!
+    \end{block}
+    \pause
+     \begin{block}{\code{tf.mul}}
+        Arithmetic only works if the \data{inputs} have the same type.
+        \begin{lstlisting}
+>>> |tx|t = tf.|oconstant|o(|v3|v)
+>>> |ty|t = tf.|oconstant|o(|v3.5|v)
+>>> |tm|t = tf.|omultiply|o(|tx|t, |ty|t)
+TypeError
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Data Types}
+    \framesubtitle{Basics}
+    \begin{block}{Similar to NumPy}
+        Tensorflow data types are almost the same as numpy's. 
+        A non-exhaustive list:
+        \begin{itemize}
+            \item signed integers \code{tf.int8}, \ldots, \code{tf.int64}
+            \item unsigned integers \code{tf.uint8}, \ldots, \code{tf.uint64}
+            \item floating point \code{tf.float32}, \code{tf.float64}
+            \item complex numbers \code{tf.complex64}
+            \item boolean \code{tf.bool}
+            \item byte strings \code{tf.string}
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Data Types}
+    \framesubtitle{Basics}
+    \begin{block}{References}
+        The data type of a \data{tensor} can also be a reference (e.g. \code{tf.float32\_ref}). 
+        In that case the contents of the \data{tensor} can be written to.
+    \end{block}
+    \begin{block}{Quantized and half-precision}
+        For speed (typically during inference) tensorflow also offers half precision (float16) and
+        quantized data types.
+    \end{block}
+    \begin{block}{Default Data Types}
+        When converting python \pythonval{values} to \data{tensors} they will be converted to 32 bit types 
+        (\code{tf.float32} for floats and \code{tf.int32} for integers). On most GPUs \code{float32} are \emph{much} faster than their 64 bit counterparts. 
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Data Types}
+    \framesubtitle{Casting}
+    \begin{block}{Strictness}
+        TensorFlow is stricter about data types than numpy. 
+        You cannot combine \data{tensors} of different data type in arithmetic. 
+        \begin{lstlisting}
+>>> tf.add(tf.placeholder(tf.int32), tf.placeholder(tf.float32))
+Error
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{\code{tf.cast}}
+        The \operation{tf.cast} operation creates a new \data{tensor} with a given data type and the "same" value as the \data{input}. 
+                \begin{lstlisting}
+>>> a = tf.placeholder(tf.int32)
+>>> b = tf.placeholder(tf.float32)
+>>> tf.add(tf.cast(a, tf.float32), b)
+<Tensor ...>
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+
+\begin{frame}
+    \frametitle{Sessions}
+    \framesubtitle{\code{tf.Session}}
+    \begin{block}{Execution}
+        Run the graph given some \emph{fetches} (= \data{Tensors} whose \pythonval{value} you want to calculate and retrieve)
+        and an optional \emph{feed} dict. The \code{feed\_dict} parameter allows any (feedable) \data{Tensor} to be given a fixed \pythonval{value} so that the graph will not be traversed further.
+    \end{block}
+    \begin{block}{Resources}
+        A session object also manages resources (e.g. allocated memory). 
+        These can be temporary (\pythonval{tensors} during a single run) or persistent (the values of \code{tf.Variables}). 
+        Therefore it is imperative to close a session after its use to free these resources again. 
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Sessions}
+    \framesubtitle{\code{tf.Session}}
+    \begin{block}{Fetching Values}
+        Replaces \data{tensor} objects with their \pythonval{values} in any nested structure of dicts, lists and tuples.
+        \pause
+        \begin{lstlisting}
+>>> session = tf.Session()
+>>> |ta|t = |otf.constant|o(|v5|v)
+>>> |tb|t = |otf.constant|o(|v8|v)
+>>> session.run([|ta|t, |tb|t])
+|v[5, 8]|v
+>>> session.run({"a": |ta|t, "b": (|tb|t,)})  
+|v{"a": 5, "b": (8,)}|v
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Sessions}
+    \framesubtitle{\code{tf.Session}}
+    \begin{block}{Fetching Operations}
+        \operation{Operations} can also be part of the fetch structure. This causes them to be run. 
+        Since they have no \pythonval{value} they always return \pythonval{None}.
+        \pause
+        \begin{lstlisting}
+>>> session = tf.Session()
+>>> |tx|t = |otf.add|o(|v5|v, |v13|v)
+>>> session.run((|tx|t, |ox.op|o))
+|v(13, None)|v
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Sessions}
+    \framesubtitle{\code{tf.Session}}
+    \begin{block}{Feeding}
+        Feeding a \data{tensor} means that tf assumes that its \pythonval{value} is readily available, so no 
+        \operation{operation} has to be invoked to calculate it. 
+        \begin{lstlisting}
+>>> p = tf.Print(5, [5])
+>>> session.run(p)  # prints 5
+5
+>>> session.run(p, feed_dict={p: 6})  # prints nothing
+6
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Sessions}
+    \framesubtitle{\code{tf.InteractiveSession}}
+    \begin{block}{Direct evaluation}
+        To get a single \data{tensor} or run a single \operation{operation} it is possible to 
+        call \code{run} (for \operation{operations}) or \code{eval} (for \data{tensors}).
+        \begin{lstlisting}
+>>> a = tf.constant(5)
+>>> a.eval(session)
+5
+        \end{lstlisting}
+    \end{block}
+    \pause
+    \begin{block}{Interactive Session}
+        If an \code{InteractiveSession} is used, it will be the \emph{default session} so there is no need to specify it.
+        \begin{lstlisting}
+>>> session = tf.InteractiveSession()
+>>> a = tf.constant(5)
+>>> a.eval()
+5
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Your Turn}
+    \begin{block}{Task}
+        Transform the following computation into a tensorflow graph. We want to have \code{x} and \code{y} as tensors.
+    \begin{lstlisting}
+x = 1 + 3
+s = 2*x**2 + 5
+y = x + np.sqrt(s)
+    \end{lstlisting}
+    \end{block}
+    \pause
+    \begin{block}{A Solution}
+    Ensure matching data types when passing in \data{tensors}! 
+    \pythonval{Python constants} will be automatically cast.
+    \begin{lstlisting}
+tf.InteractiveSession()
+x = tf.add(tf.constant(1.0), tf.constant(3.0))
+s = tf.add(tf.multiply(2, tf.pow(x, 2)), 5)
+y = tf.add(x, tf.sqrt(s))
+y.eval()
+    \end{lstlisting}        
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]  % TODO this and the last should be one frame
+    \frametitle{Your Turn}
+    \begin{block}{Task}
+        Transform the following computation into tensorflow graph. We want to have \code{x} and \code{y} as tensors.
+    \begin{lstlisting}
+x = 1 + 3
+s = 2*x**2 + 5
+y = x + np.sqrt(s)
+    \end{lstlisting}
+    \end{block}
+    \begin{block}{Using overloaded operators}
+    We need at least one \data{tf.Tensor} in the expression to trigger the overloaded operator.
+    \begin{lstlisting}
+tf.InteractiveSession()
+x = tf.constant(1.0) + 3
+s = 2*x**2 + 5
+y = x + tf.sqrt(s)
+y.eval()
+    \end{lstlisting}        
+    \end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+    \frametitle{Recap}
+    Building a Graph is like \emph{defining} a python function, where the \operation{ops} are the instructions 
+    and \data{tensors} are \emph{immutable} local variables. Running the graph in a session is like executing 
+    the function in a python interpreter.
+    \pause
+    \begin{columns}
+    \begin{column}{0.5\textwidth}
+    \begin{lstlisting}
+a = tf.constant(5)
+b = tf.constant(10)
+x = tf.add(a, b)
+    \end{lstlisting}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+    \begin{lstlisting}
+def calculate_x():
+    a = 5
+    b = 10
+    x = a + b
+    return x
+    \end{lstlisting}
+    \end{column}
+    \end{columns}
+    \pause
+    At this point, no calculations have been performed yet. For that we need to actually call the function.
+    \begin{columns}
+    \begin{column}{0.5\textwidth}
+    \begin{lstlisting}
+session.run(x)
+    \end{lstlisting}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+    \begin{lstlisting}
+calculate_x()
+    \end{lstlisting}
+    \end{column}
+    \end{columns}
+    \pause
+    What is missing still is the equivalent of function \emph{arguments} and \emph{global variables}.
+\end{frame}

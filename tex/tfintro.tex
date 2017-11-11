@@ -1,0 +1,126 @@
+%!TEX program = lualatex
+
+\PassOptionsToPackage{svgnames}{xcolor}
+\documentclass[aspectratio=1610]{beamer}
+\usepackage{graphicx}
+\usepackage{fontspec}
+\usepackage[svgnames]{xcolor}
+\usepackage{mathtools}
+\usepackage{listings} 
+
+\definecolor{key-color}{rgb}{0.8, 0.47, 0.196}
+\definecolor{string-color}{rgb}{0.3333, 0.5254, 0.345}
+
+\lstdefinelanguage{tfpy}{
+  language     = Python,
+  morekeywords = {Session, run, InteractiveSession, constant, add, subtract, divide, multiply, matmul, sqrt, zeros, ones, fill,
+  ones_like, zeros_like,
+  cast,
+  reduce_sum, reduce_mean, reduce_prod, reduce_min, reduce_max, reduce_all, reduce_any, reduce_logsumexp, reduce_join, argmax,
+  equal, less, less_equal, greater, greater_equal,
+  logical_and, logical_or, logical_not, logical_xor,
+  Variable, placeholder,
+  assign,
+  softmax, softmax_cross_entropy_with_logits, sigmoid,
+  scalar, image, audio, text, histogram,
+  Saver, create_global_step, import_meta_graph, save, restore, latest_checkpoint,
+  global_variables_initializer, Graph, as_default, name_scope, variable_scope, get_variable,
+  random_uniform, random_normal, truncated_normal, variance_scaling, orthogonal, identity, random_gamma, random_shuffle, multinomial, random_crop,
+  dense, conv2d, flatten, dropout,
+  get_regularization_losses, get_regularization_loss, mean_squared_error, l1_regularizer, l2_regularizer},
+  keywordstyle = {\textbf},
+  keywordstyle = [2]{\color{key-color}},
+  keywordstyle = [3]{\color{DarkBlue}},
+  moredelim=[is][\pythonval]{|v}{|v},
+  moredelim=[is][\data]{|t}{|t},
+  moredelim=[is][\operation]{|o}{|o},
+  moredelim=[is][\buildfun]{|f}{|f},
+  moredelim=[is][\emph]{|m}{|m},
+  moredelim=[is][\color{LightGray}]{|g}{|g},
+  morekeywords = [2]{with, as, def, for, in, return},
+  morekeywords = [3]{tf, nn, summary, train, np, layers, initializers, losses, contrib},
+  stringstyle = {\color{string-color}},
+  commentstyle=\color{DarkGray}
+}
+
+\lstset{language=tfpy}
+\lstset{basicstyle=\ttfamily,columns=fullflexible}
+
+%Biblatex
+\usepackage[backend=biber,maxcitenames=1,citestyle=authortitle]{biblatex} %biblatex mit biber laden
+\ExecuteBibliographyOptions{
+sorting=nyt, %Sortierung Autor, Titel, Jahr
+bibwarn=true, %Probleme mit den Daten, die Backend betreffen anzeigen
+isbn=false, %keine isbn anzeigen
+url=false %keine url anzeigen
+}
+
+\setbeamertemplate{bibliography item}{\insertbiblabel} 
+\addbibresource{lit.bib}
+
+
+\setsansfont{Ubuntu}
+\setmonofont{Ubuntu Mono}
+
+\newcommand{\txt}[1]{{\color{SteelBlue} #1}}
+\newcommand{\code}[1]{{\texttt{#1}}}
+\newcommand{\operation}[1]{{\color{Red} #1}}
+\newcommand{\data}[1]{{\color{Blue} #1}}
+\newcommand{\pythonval}[1]{{\color{Green} \texttt{#1}}}
+\newcommand{\buildfun}[1]{{\color{Orange} \texttt{#1}}}
+
+
+\title{Introduction to TensorFlow}   
+\author{Stephan Eule, Erik Schultheis} 
+\date{\today} 
+
+\usetheme{Goettingen}
+
+
+\begin{document}
+\frame{\titlepage}
+\frame{\tableofcontents}
+%%% BASICS %%%
+\section{Foundations of TensorFlow}
+\subsection{Computations on Graphs}
+\input{graph_computations}
+
+\subsection{TensorFlow Basics}
+\input{tfbasics}
+
+\subsection{Placeholders and Variables}
+\input{variables}
+
+%%% NEURAL NETWORKS %%%
+\section{Training Neural Networks}
+\subsection{Neural Networks and Training}
+\input{nn}
+
+\subsection{Summaries and Tensorboard}
+\input{tensorboard}{}
+
+\subsection{Checkpointing}
+\input{checkpointing}
+
+\subsection{Structuring a Model}
+\input{structure}
+
+%%% Higher Level Interface %%%
+\section{Higher Level Interface}
+\subsection{Layers}
+\input{layers}
+
+\subsection{Losses}
+\input{losses}
+
+\subsection{Training Utilities}
+
+% tf.layers and tf.losses higher level stuff
+% tf.train utilities
+% tf.MonitoredSEssion, tf.MonitoredTrainingSession
+
+% What is tf?
+% numerical stability
+
+
+\end{document}
